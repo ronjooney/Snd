@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Playlist Exporter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=Courier+Prime&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: #080810;
+      color: #e0d8cc;
+      font-family: 'Playfair Display', Georgia, serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #10101a;
+      border: 1px solid #1e1a30;
+      border-radius: 6px;
+      padding: 40px 32px;
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: -80px; left: 50%;
+      transform: translateX(-50%);
+      width: 300px; height: 200px;
+      background: radial-gradient(ellipse, rgba(100,60,200,0.2) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .label {
+      font-family: 'Courier Prime', monospace;
+      font-size: 11px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #7050cc;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: clamp(20px, 5vw, 26px);
+      font-weight: 400;
+      color: #f0ebe2;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+    .subtitle {
+      font-family: 'Courier Prime', monospace;
+      font-size: 12px;
+      color: #3e3658;
+      letter-spacing: 0.06em;
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      background: #5030a0;
+      color: #f0ebe2;
+      border: none;
+      padding: 16px 24px;
+      border-radius: 4px;
+      font-family: 'Courier Prime', monospace;
+      font-size: 13px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-bottom: 12px;
+    }
+    .btn:hover { background: #6040b8; }
+    .btn-google {
+      background: #f8f8f8;
+      color: #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      font-family: 'Courier Prime', monospace;
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: none;
+      padding: 14px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 12px;
+      transition: background 0.2s;
+    }
+    .btn-google:hover { background: #e8e8e8; }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #2a2040;
+      color: #7050cc;
+    }
+    .btn-outline:hover { background: #14101e; }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 2px solid #1e1a30;
+      border-top-color: #7050cc;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .status {
+      font-family: 'Courier Prime', monospace;
+      font-size: 12px;
+      color: #3e3658;
+      letter-spacing: 0.1em;
+      margin-bottom: 16px;
+    }
+    .error {
+      color: #c05060;
+      font-family: 'Courier Prime', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .track-count {
+      font-size: 52px;
+      color: #7050cc;
+      font-weight: 400;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .track-label {
+      font-family: 'Courier Prime', monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #3e3658;
+      margin-bottom: 28px;
+    }
+    .playlist-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 20px 0;
+      max-height: 320px;
+      overflow-y: auto;
+      text-align: left;
+    }
+    .playlist-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border: 1px solid #1a1630;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .playlist-item:hover { border-color: #5030a0; background: #14101e; }
+    .playlist-item.selected { border-color: #7050cc; background: #16102a; }
+    .playlist-item input[type="checkbox"] {
+      accent-color: #7050cc;
+      width: 16px; height: 16px;
+      flex-shrink: 0;
+    }
+    .playlist-name {
+      font-size: 14px;
+      color: #c8c0b4;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .playlist-count {
+      font-family: 'Courier Prime', monospace;
+      font-size: 11px;
+      color: #3e3658;
+      margin-top: 2px;
+    }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #10101a; }
+    ::-webkit-scrollbar-thumb { background: #2a2040; border-radius: 2px; }
+    .divider { border: none; border-top: 1px solid #1a1630; margin: 20px 0; }
+    .select-all-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .link-btn {
+      background: none;
+      border: none;
+      color: #5030a0;
+      font-family: 'Courier Prime', monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      padding: 0;
+    }
+    .link-btn:hover { color: #7050cc; }
+  </style>
+</head>
+<body>
+<div class="card" id="app">
+  <div id="signin-view">
+    <p class="label">Playlist Exporter</p>
+    <h1>Export Your YouTube Music Playlists</h1>
+    <p class="subtitle">Sign in with Google to access your playlists,<br>including tracks showing as "Private Video"</p>
+    <button class="btn-google" onclick="signIn()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"/><path fill="#FBBC05" d="M3.964 10.707A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.961L3.964 6.293C4.672 4.166 6.656 3.58 9 3.58z"/></svg>
+      Sign in with Google
+    </button>
+    <p class="status">Your data stays in your browser — nothing is sent to any server.</p>
+  </div>
+</div>
+
+<script>
+  var CLIENT_ID = "111169235418-1l8rt89poeq0q3roh7l8bod5mohltmo1.apps.googleusercontent.com";
+  var SCOPES = "https://www.googleapis.com/auth/youtube.readonly";
+  var accessToken = null;
+
+  // On load, check if returning from Google OAuth with token in URL hash
+  window.onload = function() {
+    var hash = window.location.hash;
+    if (hash && hash.length > 1) {
+      var params = new URLSearchParams(hash.substring(1));
+      var token = params.get('access_token');
+      var error = params.get('error');
+      if (token) {
+        accessToken = token;
+        history.replaceState(null, '', window.location.pathname);
+        fetchPlaylists();
+        return;
+      }
+      if (error) {
+        showError("Sign-in failed: " + error);
+        return;
+      }
+    }
+  };
+
+  function signIn() {
+    // Use the current page URL as the redirect URI
+    var redirectUri = window.location.href.split('#')[0].split('?')[0];
+    var authUrl = 'https://accounts.google.com/o/oauth2/v2/auth'
+      + '?client_id=' + encodeURIComponent(CLIENT_ID)
+      + '&redirect_uri=' + encodeURIComponent(redirectUri)
+      + '&response_type=token'
+      + '&scope=' + encodeURIComponent(SCOPES)
+      + '&prompt=consent';
+    window.location.href = authUrl;
+  }
+
+  async function apiFetch(url) {
+    var res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + accessToken } });
+    var data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    return data;
+  }
+
+  async function fetchPlaylists() {
+    showLoading("Loading your playlists…");
+    try {
+      var playlists = [];
+      var pageToken = "";
+      do {
+        var data = await apiFetch('https://www.googleapis.com/youtube/v3/playlists?part=snippet,contentDetails&mine=true&maxResults=50&pageToken=' + pageToken);
+        playlists = playlists.concat(data.items);
+        pageToken = data.nextPageToken || "";
+      } while (pageToken);
+      showPlaylistPicker(playlists);
+    } catch(err) {
+      showError(err.message);
+    }
+  }
+
+  function showPlaylistPicker(playlists) {
+    var app = document.getElementById("app");
+    var rows = playlists.map(function(p) {
+      return '<label class="playlist-item" id="pl-' + p.id + '">'
+        + '<input type="checkbox" value="' + p.id + '" onchange="updateItem(\'' + p.id + '\')">'
+        + '<div style="overflow:hidden">'
+        + '<div class="playlist-name">' + escapeHtml(p.snippet.title) + '</div>'
+        + '<div class="playlist-count">' + p.contentDetails.itemCount + ' tracks</div>'
+        + '</div></label>';
+    }).join('');
+
+    app.innerHTML = '<p class="label">Your Playlists</p>'
+      + '<h1>Select playlists to export</h1>'
+      + '<p class="subtitle">' + playlists.length + ' playlists found</p>'
+      + '<div class="select-all-row">'
+      + '<button class="link-btn" onclick="toggleAll(true)">Select all</button>'
+      + '<button class="link-btn" onclick="toggleAll(false)">Deselect all</button>'
+      + '</div>'
+      + '<div class="playlist-grid" id="playlist-grid">' + rows + '</div>'
+      + '<hr class="divider">'
+      + '<button class="btn" id="export-btn">Export Selected as CSV</button>'
+      + '<button class="btn btn-outline" onclick="fetchPlaylists()">&#8635; Refresh</button>';
+
+    window._playlists = playlists;
+    document.getElementById('export-btn').onclick = exportSelected;
+  }
+
+  function updateItem(id) {
+    var el = document.getElementById('pl-' + id);
+    var cb = el.querySelector('input');
+    el.classList.toggle('selected', cb.checked);
+  }
+
+  function toggleAll(state) {
+    document.querySelectorAll('#playlist-grid input[type="checkbox"]').forEach(function(cb) {
+      cb.checked = state;
+      var el = document.getElementById('pl-' + cb.value);
+      if (el) el.classList.toggle('selected', state);
+    });
+  }
+
+  async function exportSelected() {
+    var playlists = window._playlists;
+    var selected = Array.from(document.querySelectorAll('#playlist-grid input:checked')).map(function(cb) { return cb.value; });
+    if (!selected.length) { alert("Please select at least one playlist."); return; }
+
+    var selectedPlaylists = playlists.filter(function(p) { return selected.indexOf(p.id) !== -1; });
+    showLoading("Starting export…");
+
+    try {
+      var allRows = [["Playlist", "#", "Title", "Artist", "Video ID", "URL", "Status"]];
+      var totalTracks = 0;
+
+      for (var pi = 0; pi < selectedPlaylists.length; pi++) {
+        var pl = selectedPlaylists[pi];
+        var songs = [];
+        var pageToken = "";
+        var page = 1;
+        do {
+          setStatus('Fetching: ' + pl.snippet.title + ' (page ' + page + ')…');
+          var data = await apiFetch('https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,status&playlistId=' + pl.id + '&maxResults=50&pageToken=' + pageToken);
+          songs = songs.concat(data.items);
+          pageToken = data.nextPageToken || "";
+          page++;
+        } while (pageToken);
+
+        for (var i = 0; i < songs.length; i++) {
+          var s = songs[i].snippet;
+          var videoId = (s.resourceId && s.resourceId.videoId) ? s.resourceId.videoId : "";
+          var title = (s.title || "").replace(/"/g, '""');
+          var artist = (s.videoOwnerChannelTitle || "").replace(" - Topic", "").replace(/"/g, '""');
+          var url = videoId ? 'https://music.youtube.com/watch?v=' + videoId : "";
+          var status = (s.title === "Private video" || s.title === "Deleted video") ? s.title : "Available";
+          var plTitle = pl.snippet.title.replace(/"/g, '""');
+          allRows.push(['"' + plTitle + '"', i + 1, '"' + title + '"', '"' + artist + '"', videoId, url, status]);
+        }
+        totalTracks += songs.length;
+      }
+
+      showExportDone(allRows, totalTracks, selectedPlaylists.length);
+    } catch(err) {
+      showError(err.message);
+    }
+  }
+
+  function showExportDone(rows, totalTracks, playlistCount) {
+    var app = document.getElementById("app");
+    var privateCount = rows.filter(function(r) { return r[6] === "Private video" || r[6] === "Deleted video"; }).length;
+    app.innerHTML = '<p class="label">Export Ready</p>'
+      + '<div class="track-count">' + totalTracks + '</div>'
+      + '<p class="track-label">tracks across ' + playlistCount + ' playlist' + (playlistCount > 1 ? 's' : '') + '</p>'
+      + (privateCount > 0 ? '<p class="status" style="color:#c05060;margin-bottom:16px">' + privateCount + ' private/deleted track' + (privateCount > 1 ? 's' : '') + ' included</p>' : '')
+      + '<button class="btn" onclick="downloadCSV()">&#11015; Download CSV</button>'
+      + '<button class="btn btn-outline" onclick="location.reload()">&#8592; Back to Playlists</button>';
+    window._csvRows = rows;
+  }
+
+  function downloadCSV() {
+    var rows = window._csvRows;
+    if (!rows) return;
+    var csv = rows.map(function(r) { return r.join(","); }).join("\n");
+    var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "youtube_playlists.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function showLoading(msg) {
+    document.getElementById("app").innerHTML = '<div class="spinner"></div><p class="status" id="status-text">' + escapeHtml(msg) + '</p>';
+  }
+
+  function setStatus(msg) {
+    var el = document.getElementById("status-text");
+    if (el) el.textContent = msg;
+  }
+
+  function showError(msg) {
+    document.getElementById("app").innerHTML = '<p class="label">Error</p><p class="error">' + escapeHtml(msg) + '</p><br><button class="btn" onclick="location.reload()">Try Again</button>';
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+</script>
+</body>
+</html>
