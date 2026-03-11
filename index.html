@@ -219,11 +219,11 @@
 </div>
 
 <script>
-  var CLIENT_ID = "111169235418-1l8rt89poeq0q3roh7l8bod5mohltmo1.apps.googleusercontent.com";
+  var CLIENT_ID = "111169235418-hslcucabqutaam6297c00dv1t8qm1mr5.apps.googleusercontent.com";
+  var REDIRECT_URI = "https://ronjooney.github.io/playlist-exporter";
   var SCOPES = "https://www.googleapis.com/auth/youtube.readonly";
   var accessToken = null;
 
-  // On load, check if returning from Google OAuth with token in URL hash
   window.onload = function() {
     var hash = window.location.hash;
     if (hash && hash.length > 1) {
@@ -244,11 +244,9 @@
   };
 
   function signIn() {
-    // Use the current page URL as the redirect URI
-    var redirectUri = window.location.href.split('#')[0].split('?')[0];
     var authUrl = 'https://accounts.google.com/o/oauth2/v2/auth'
       + '?client_id=' + encodeURIComponent(CLIENT_ID)
-      + '&redirect_uri=' + encodeURIComponent(redirectUri)
+      + '&redirect_uri=' + encodeURIComponent(REDIRECT_URI)
       + '&response_type=token'
       + '&scope=' + encodeURIComponent(SCOPES)
       + '&prompt=consent';
